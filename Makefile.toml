@@ -1,0 +1,56 @@
+# mem4_game/mem4/Makefile.toml
+# https://github.com/sagiegurari/cargo-make/blob/master/src/lib/Makefile.stable.toml
+
+[config]
+skip_core_tasks = true
+
+#region: public callable tasks/flows
+
+    [tasks.default]
+    description = "show list of public callable tasks"
+    clear = true
+    command = "cargo"
+    args = ["make","--list-all-steps"]
+
+    [tasks.dev]
+    description = "cargo build development"
+    clear = true
+    dependencies = [
+        "build-dev",
+        "post-build",
+    ]
+
+    [tasks.release]
+    description = "cargo build release"
+    clear = true
+    dependencies = [
+        "build-release",
+        "post-build",
+    ]
+
+# endregion
+
+[tasks.build-dev]
+clear = true
+private = true
+command = "wasm-pack"
+args = ["build", "--target", "web"]
+
+[tasks.build-release]
+clear = true
+private = true
+command = "wasm-pack"
+args = ["build","--target", "web"]
+
+[tasks.post-build]
+clear = true
+private = true
+windows_alias = "windows_post-build"
+
+[tasks.windows_post-build]
+clear = true
+private = true
+script = [
+    "start chrome http://127.0.0.1:8086", 
+    "basic-http-server -a 127.0.0.1:8086",
+]
