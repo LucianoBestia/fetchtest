@@ -183,52 +183,59 @@ pub fn fetch_rust() {
     //1. wasm_bindgen knows only method fetch_with_request, and that returns a promise
     //https://dev.to/werner/practical-rust-web-development-front-end-538d
 
-    let success_response = Closure::once(move |js_value: JsValue| {
-        log1("success_response");
+    let clos_success_response = Closure::once(move |js_value: JsValue| {
+        log1("clos_success_response");
         assert!(js_value.is_instance_of::<Response>());
         let resp: Response = unwrap!(js_value.dyn_into());
 
         //again a new promise and new Closures...
-        let success_text = Closure::once(move |js_value: JsValue| {
-            log1("success_text");
+        let clos_success_text = Closure::once(move |js_value: JsValue| {
+            log1("clos_success_text");
             assert!(js_value.is_string());
             let txt: String = unwrap!(js_value.as_string());
-            log1("after as_string success_text");
+            log1("after as_string clos_success_text");
+            let window = unwrap!(web_sys::window());
+            let document = unwrap!(window.document());
+            let div_for_fetch_rust = unwrap!(
+                document.get_element_by_id("for_fetch_rust"),
+                "No #for_fetch_rust"
+            );
+            div_for_fetch_rust.set_inner_html(&txt);
             log1(&txt);
         });
-        let error_text = Closure::once(move |js_value: JsValue| {
-            log1("error_text");
+        let clos_error_text = Closure::once(move |js_value: JsValue| {
+            log1("clos_error_text");
             console::log_1(&js_value);
         });
 
         //again a new promise...
         #[rustfmt::skip]
         unwrap!(resp.text())
-            .then(&success_text)
-            .catch(&error_text)
+            .then(&clos_success_text)
+            .catch(&clos_error_text)
         ;
 
         //wilingly memory leaking
-        success_text.forget();
-        error_text.forget();
-        log1("end success_response");
+        clos_success_text.forget();
+        clos_error_text.forget();
+        log1("end clos_success_response");
     });
 
-    let error_response = Closure::once(move |js_value: JsValue| {
-        log1("error_response");
+    let clos_error_response = Closure::once(move |js_value: JsValue| {
+        log1("clos_error_response");
         console::log_1(&js_value);
     });
 
     #[rustfmt::skip]
     window
         .fetch_with_request(&request)
-            .then(&success_response)
-            .catch(&error_response)
+            .then(&clos_success_response)
+            .catch(&clos_error_response)
         ;
 
     //this memory leak on purpose is the only way
-    error_response.forget();
-    success_response.forget();
+    clos_error_response.forget();
+    clos_success_response.forget();
 
 }
 

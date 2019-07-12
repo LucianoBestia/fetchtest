@@ -17,6 +17,7 @@
   <div>
     <h1>fetchtest - javascript promises</h1>
     <button style="margin:auto;display:block;" onclick='{
+      //promises are very difficult to read
       window.fetch("https://jsonplaceholder.typicode.com/todos/1")
         .then(function(response) {
           console.log("fetch response");
@@ -38,15 +39,19 @@
 
   <h1>fetchtest - javascript async+await</h1>
   <button style="margin:auto;display:block;" onclick='{
-      async function get_data() 
+      async function get_data_and_write() 
       {
+        //async+await is so much readable
         let response = await fetch("https://jsonplaceholder.typicode.com/todos/1");
-        let data = await response.json()
-        return data;
+        console.log("fetch response");
+        let txt = await response.text();
+        console.log(txt);
+        var div=document.getElementById("for_fetch_js_async_await"); 
+        div.innerHTML=txt;
+        console.log("after div.innerHTML"); 
       }
   
-      get_data()
-      .then(data => console.log(data));
+      get_data_and_write()
 
       }'>fetch javascript asyn await</button>
   <div id="for_fetch_js_async_await">
