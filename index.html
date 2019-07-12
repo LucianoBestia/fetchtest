@@ -5,16 +5,61 @@
   <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
-  <title>amafatt</title>
-  <link rel="stylesheet" href="css/amafatt.css">
+  <title>fetchtest</title>
+  <link rel="stylesheet" href="css/fetchtest.css">
 </head>
 
 <body>
+  <!--Here I have 3 sections/divs: 
+    first javascript promises and then async+await
+    and then rust code
+    -->
+  <div>
+    <h1>fetchtest - javascript promises</h1>
+    <button style="margin:auto;display:block;" onclick='{
+      window.fetch("https://jsonplaceholder.typicode.com/todos/1")
+        .then(function(response) {
+          console.log("fetch response");
+          response.text()
+          .then(function(txt){
+            console.log(txt);
+            var div=document.getElementById("for_fetch_js_promise"); 
+            div.innerHTML=txt;
+            console.log("after div.innerHTML"); 
+          })
+        }) 
+        .catch(function(myJson) {
+          console.log("catch for errors");
+          console.log(JSON.stringify(myJson)); }); 
+        }'>fetch javascript</button>
+    <div id="for_fetch_js_promise">
+    </div>
+  </div>
+
+  <h1>fetchtest - javascript async+await</h1>
+  <button style="margin:auto;display:block;" onclick='{
+      async function get_data() 
+      {
+        let response = await fetch("https://jsonplaceholder.typicode.com/todos/1");
+        let data = await response.json()
+        return data;
+      }
+  
+      get_data()
+      .then(data => console.log(data));
+
+      }'>fetch javascript asyn await</button>
+  <div id="for_fetch_js_async_await">
+  </div>
+  </div>
+  <!--section/div for rust/wasm code-->
   <div id="div_for_virtual_dom">
   </div>
+
+  <!--importing rust/wasm code-->
   <script type="module">
-    import init from "./pkg/amafatt.js";
-    init("./pkg/amafatt_bg.wasm");
+    import init from "./pkg/fetchtest.js";
+    init("./pkg/fetchtest_bg.wasm");
    </script>
 </body>
 

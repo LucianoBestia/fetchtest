@@ -1,4 +1,4 @@
-# mem4_game/mem4/Makefile.toml
+# fetchtest_game/fetchtest/Makefile.toml
 # https://github.com/sagiegurari/cargo-make/blob/master/src/lib/Makefile.stable.toml
 
 [config]
@@ -51,6 +51,8 @@ windows_alias = "windows_post-build"
 clear = true
 private = true
 script = [
-    "start chrome http://127.0.0.1:8086", 
+    # chrome has a super security for cross-origin and it does not work well here
+    #"start chrome http://127.0.0.1:8086", 
+    "start \"firefix\" \"C:\\Program Files\\Mozilla Firefox\\firefox.exe\" 127.0.0.1:8086",
     "basic-http-server -a 127.0.0.1:8086",
 ]

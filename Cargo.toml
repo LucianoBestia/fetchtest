@@ -1,9 +1,8 @@
 [package]
-name = "amafatt"
-version = "0.1.0"
+name = "fetchtest"
+version = "0.1.2"
 authors = ["Luciano Bestia <luciano.bestia@gmail.com>"]
 edition = "2018"
-description="precessa la txt di amazon e chiama la api di fattureincloud.it"
 
 [lib]
 crate-type = ["cdylib"]

@@ -6,6 +6,10 @@
 # Forces the where clause to be laid out on a single line.
 # still unstable where_single_line = true
 
+#if rustfmt sometimes cannot format nicely
+#disable_all_formatting = true
+
 reorder_imports = false
 reorder_modules = false
 reorder_impl_items = false
+force_multiline_blocks = true
