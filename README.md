@@ -25,8 +25,13 @@ https://fundamentalsofcode.com/javascript-fetch-api-and-using-async-await/
 Rust has futures. JavaScript has promises. They are same-same, but different.  
 I don't really understand why I should jump from futures to promises and back?  
 Why not just use promises? What is so much better using futures?  
+## Better code
+After all this ranting from an old man and spending a lot of time and effort I have finally something I like.  
+I used the fetch example that converts from promises to futures. From that I created a generic
+function that encapsulates all the promise/future chain. At the end of this chain we want to do something
+useful. So I must send a reference to a function as a parameter. It works! And I like it because the complicated stuff is 'hidden' in a single function. The function that really executes something useful is just a simple function as usual.
 ## rust async+await
-It is still in the working. Very promising, but it takes forever...  
+It is still in the working. Very promising, but it takes forever to get released in stable...  
 ## build and run
 Type and run this in the project folder  
 `cargo make dev`

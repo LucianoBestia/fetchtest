@@ -75,6 +75,7 @@ extern crate unwrap;
 extern crate conv;
 extern crate wasm_bindgen_futures;
 
+use futures::future::Future;
 use dodrio::builder::text;
 use wasm_bindgen::prelude::*;
 use dodrio::bumpalo::{self, Bump};
@@ -138,7 +139,7 @@ impl Render for RootRenderingComponent {
             <div>
                 <h1>
                     {vec![text(
-                        bumpalo::format!(in bump, "fetchtest - rust wasm-bindgen{}",
+                        bumpalo::format!(in bump, "fetchtest - rust promises{}",
                         "")
                         .into_bump_str()
                     )]}
@@ -152,25 +153,51 @@ impl Render for RootRenderingComponent {
                 </div>
                 <button style= "margin:auto;display:block;" onclick={move |root, vdom, _event| {
                     let rrc = root.unwrap_mut::<RootRenderingComponent>();
-                    fetch_rust();
+                    fetch_rust_promises();
                     vdom.schedule_render();
-                }}>"fetch rust"</button>
-                <div id="for_fetch_rust">
+                }}>"fetch rust promises"</button>
+                <div id="for_fetch_rust_promises">
                 </div>
+
+                <h1>
+                    {vec![text(
+                        bumpalo::format!(in bump, "fetchtest - rust futures{}",
+                        "")
+                        .into_bump_str()
+                    )]}
+                </h1>
+                <div>
+                    {vec![text(
+                        bumpalo::format!(in bump, "{}",
+                        self.response)
+                        .into_bump_str()
+                    )]}
+                </div>
+                <button style= "margin:auto;display:block;" onclick={move |root, vdom, _event| {
+                    let rrc = root.unwrap_mut::<RootRenderingComponent>();
+                    fetch_rust_futures();
+                    vdom.schedule_render();
+                }}>"fetch rust futures"</button>
+                <div id="for_fetch_rust_futures">
+                </div>
+
             </div>
         )
     }
 }
 
-///fetch in Rust
+//region fetch in Rust with promises
+
+///fetch in Rust with promises
 #[wasm_bindgen]
-pub fn fetch_rust() {
+pub fn fetch_rust_promises() {
     //Request init
     let mut opts = RequestInit::new();
     opts.method("GET");
     //Firefox understand NoCors and works.
     //Chrome is very limiting with his CORB and does not understand NoCors.
     //opts.mode(RequestMode::NoCors);
+    //the most important is that the server response header has access-control-allow-origin: *
 
     let request = unwrap!(Request::new_with_str_and_init(
         "https://jsonplaceholder.typicode.com/todos/1",
@@ -196,11 +223,11 @@ pub fn fetch_rust() {
             log1("after as_string clos_success_text");
             let window = unwrap!(web_sys::window());
             let document = unwrap!(window.document());
-            let div_for_fetch_rust = unwrap!(
-                document.get_element_by_id("for_fetch_rust"),
-                "No #for_fetch_rust"
+            let div_for_fetch_rust_promises = unwrap!(
+                document.get_element_by_id("for_fetch_rust_promises"),
+                "No #for_fetch_rust_promises"
             );
-            div_for_fetch_rust.set_inner_html(&txt);
+            div_for_fetch_rust_promises.set_inner_html(&txt);
             log1(&txt);
         });
         let clos_error_text = Closure::once(move |js_value: JsValue| {
@@ -238,4 +265,74 @@ pub fn fetch_rust() {
     clos_success_response.forget();
 
 }
+///fetch in Rust with futures
+#[wasm_bindgen]
+pub fn fetch_rust_futures() {
+    //call a generic function to schedule fetch() and text() promises
+    //in the end of that promises/futures chain call the function sent as parameter
+    //this last function is a normal function without promises or futures
+    fetch_rust_futures_with_function_reference(&print_rust_future_result);
+}
 
+/// a glimpse of a generic funtion to schedule fetch() and text() promises
+/// the only parameter is a reference to a function to be executed at the end of the promise/future chain
+pub fn fetch_rust_futures_with_function_reference(
+    call_function_after_fetch: &'static (dyn for<'r> std::ops::Fn(JsValue) + 'static),
+) {
+    //Request init
+    let mut opts = RequestInit::new();
+    opts.method("GET");
+    //Firefox understand NoCors and works.
+    //Chrome is very limiting with his CORB and does not understand NoCors.
+    //opts.mode(RequestMode::NoCors);
+    //the most important is that the server response header has access-control-allow-origin: *
+
+    let request = unwrap!(Request::new_with_str_and_init(
+        "https://jsonplaceholder.typicode.com/todos/1",
+        &opts
+    ));
+
+    let window = unwrap!(
+        web_sys::window().ok_or_else(|| JsValue::from_str("Could not get a window object"))
+    );
+
+    //1. wasm_bindgen knows only method fetch_with_request, and that returns a promise
+    let request_promise = window.fetch_with_request(&request);
+    //transform promise into future
+    let future = wasm_bindgen_futures::JsFuture::from(request_promise)
+        .and_then(|resp_value| {
+            // `resp_value` is a `Response` object.
+            assert!(resp_value.is_instance_of::<Response>());
+            let resp: Response = unwrap!(resp_value.dyn_into());
+            //the text() method returns a promise
+            resp.text()
+        })
+        .and_then(|text_promise: js_sys::Promise| {
+            // Convert this other `Promise` into a rust `Future`.
+            wasm_bindgen_futures::JsFuture::from(text_promise)
+        })
+        .and_then(move |text_jsvalue| {
+            //the result of the promise is JsValue as always
+            call_function_after_fetch(text_jsvalue);
+            // Send something back to JS as JsValue
+            futures::future::ok(JsValue::from_str("ok"))
+        });
+    // future_to_promise() converts `Future` into `Promise` and schedules it to be executed
+    wasm_bindgen_futures::future_to_promise(future);
+}
+
+/// the function to be executed after the fetch() and text() promise/future chain
+/// it is just a normal function with no complications
+#[allow(clippy::needless_pass_by_value)]
+fn print_rust_future_result(text_jsvalue: JsValue) {
+    let txt: String = unwrap!(text_jsvalue.as_string());
+    let window = unwrap!(web_sys::window());
+    let document = unwrap!(window.document());
+    let div_for_fetch_rust_futures = unwrap!(
+        document.get_element_by_id("for_fetch_rust_futures"),
+        "No #for_fetch_rust_futures"
+    );
+    div_for_fetch_rust_futures.set_inner_html(&txt);
+    log1(&txt);
+}
+//endregion

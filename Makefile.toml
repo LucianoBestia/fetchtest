@@ -34,13 +34,13 @@ skip_core_tasks = true
 clear = true
 private = true
 command = "wasm-pack"
-args = ["build", "--target", "web"]
+args = ["build", "--target", "web","--dev"]
 
 [tasks.build-release]
 clear = true
 private = true
 command = "wasm-pack"
-args = ["build","--target", "web"]
+args = ["build","--target", "web","--release"]
 
 [tasks.post-build]
 clear = true
@@ -51,8 +51,11 @@ windows_alias = "windows_post-build"
 clear = true
 private = true
 script = [
+    #does not need wasm-opt because in cargo.toml opt-level = 'z'
+    "ren pkg\fetchtest_bg.wasm fetchtest_bg_orig.wasm",
+    "temp\\wasm-opt -Oz -o pkg\\fetchtest_bg.wasm pkg\\fetchtest_bg_orig.wasm",
     # chrome has a super security for cross-origin and it does not work well here
-    #"start chrome http://127.0.0.1:8086", 
-    "start \"firefix\" \"C:\\Program Files\\Mozilla Firefox\\firefox.exe\" 127.0.0.1:8086",
+    "start chrome http://127.0.0.1:8086", 
+    #"start \"firefox\" \"C:\\Program Files\\Mozilla Firefox\\firefox.exe\" 127.0.0.1:8086",
     "basic-http-server -a 127.0.0.1:8086",
 ]
