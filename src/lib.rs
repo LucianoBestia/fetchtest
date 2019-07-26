@@ -61,6 +61,8 @@
 //endregion
 
 //region: extern and use statements
+mod fetchmod;
+
 extern crate console_error_panic_hook;
 extern crate log;
 extern crate serde;
@@ -93,7 +95,7 @@ fn log1(x: &str) {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RootRenderingComponent {
-    pub response: String,
+    pub respbody: String,
 }
 
 #[wasm_bindgen(start)]
@@ -123,7 +125,7 @@ impl RootRenderingComponent {
     fn new() -> RootRenderingComponent {
         //return
         RootRenderingComponent {
-            response: "".to_string(),
+            respbody: "".to_string(),
         }
     }
 }
@@ -144,13 +146,6 @@ impl Render for RootRenderingComponent {
                         .into_bump_str()
                     )]}
                 </h1>
-                <div>
-                    {vec![text(
-                        bumpalo::format!(in bump, "{}",
-                        self.response)
-                        .into_bump_str()
-                    )]}
-                </div>
                 <button style= "margin:auto;display:block;" onclick={move |root, vdom, _event| {
                     let rrc = root.unwrap_mut::<RootRenderingComponent>();
                     fetch_rust_promises();
@@ -166,13 +161,6 @@ impl Render for RootRenderingComponent {
                         .into_bump_str()
                     )]}
                 </h1>
-                <div>
-                    {vec![text(
-                        bumpalo::format!(in bump, "{}",
-                        self.response)
-                        .into_bump_str()
-                    )]}
-                </div>
                 <button style= "margin:auto;display:block;" onclick={move |root, vdom, _event| {
                     let rrc = root.unwrap_mut::<RootRenderingComponent>();
                     fetch_rust_futures();
@@ -181,12 +169,33 @@ impl Render for RootRenderingComponent {
                 <div id="for_fetch_rust_futures">
                 </div>
 
+                <h1>
+                    {vec![text(
+                        bumpalo::format!(in bump, "fetchtest - module and vdom data{}",
+                        "")
+                        .into_bump_str()
+                    )]}
+                </h1>
+                <button style= "margin:auto;display:block;" onclick={move |root, vdom_weak, _event| {
+                    let rrc = root.unwrap_mut::<RootRenderingComponent>();
+                    let webrequest = create_webrequest();
+                    let vdom_weak2=vdom_weak.clone();
+                    //call async fetch
+                    //the last parameter is the reference to the function to execute after fetch
+                    fetchmod::fetch_response(vdom_weak2,&webrequest,&update_rrc_respbody);
+                    //call to async must be the last command. The schedule_render is inside the async code.
+                }}>"fetch rust module and vdom data "</button>
+                <div>
+                    {vec![text(
+                        bumpalo::format!(in bump, "{}",
+                        self.respbody)
+                        .into_bump_str()
+                    )]}
+                </div>
             </div>
         )
     }
 }
-
-//region fetch in Rust with promises
 
 ///fetch in Rust with promises
 #[wasm_bindgen]
@@ -263,8 +272,8 @@ pub fn fetch_rust_promises() {
     //this memory leak on purpose is the only way
     clos_error_response.forget();
     clos_success_response.forget();
-
 }
+//region: fetch in Rust with futures
 ///fetch in Rust with futures
 #[wasm_bindgen]
 pub fn fetch_rust_futures() {
@@ -334,5 +343,39 @@ fn print_rust_future_result(text_jsvalue: JsValue) {
     );
     div_for_fetch_rust_futures.set_inner_html(&txt);
     log1(&txt);
+}
+//endregion
+
+//region: fetch with use of a module and update dodrio root rendering component data
+//All the repetitive fetch async code is isolated in a module.
+//Here we have 2 simple (non async) functions:
+//first - we create a web_sys request
+//second - we update the vdom data with the reponse data
+//The dodrio virtual dom will render the new data on the scheduled next render.
+//Changing the data and rendering the data must be in separate steps to avoid data race.
+
+///create web request
+fn create_webrequest() -> web_sys::Request {
+    let mut opts = RequestInit::new();
+    opts.method("GET");
+
+    let url = "https://jsonplaceholder.typicode.com/todos/1";
+
+    let web_sys_request = unwrap!(Request::new_with_str_and_init(url, &opts));
+
+    log1("before fetch_with_webrequest");
+    //return
+    web_sys_request
+}
+
+///change respbody and pretty json
+#[allow(clippy::needless_pass_by_value)]
+fn update_rrc_respbody(rrc: &mut RootRenderingComponent, respbody: String) {
+    log1("update_rrc_respbody");
+    //pretty json
+    let untyped_json: serde_json::Value = unwrap!(serde_json::from_str(&respbody));
+    let prettybody = unwrap!(serde_json::to_string_pretty(&untyped_json));
+
+    rrc.respbody = prettybody;
 }
 //endregion
